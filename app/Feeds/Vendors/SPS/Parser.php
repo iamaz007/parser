@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Feeds\Vendors\SSM;
+namespace App\Feeds\Vendors\SPS;
 
 use App\Feeds\Parser\HtmlParser;
 

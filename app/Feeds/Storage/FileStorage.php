@@ -53,7 +53,7 @@ class FileStorage extends AbstractFeedStorage
 
     private function getDontUpdateFields(): array
     {
-        if ( isset($this->processor->dx_info[ 'feeds' ]) && ( $feeds = $this->processor->dx_info[ 'feeds' ] ) && count( $feeds ) === 1 ) {
+        if ( ( $feeds = $this->processor->dx_info[ 'feeds' ] ) && count( $feeds ) === 1 ) {
             $feed = reset( $feeds );
             return $feed[ 'dont_update_fields' ] ?? [];
         }
@@ -84,7 +84,7 @@ class FileStorage extends AbstractFeedStorage
 
     private function getFileName( $ext = 'txt' ): string
     {
-        if ( isset($this->processor->dx_info[ 'feeds' ]) && ( $feeds = $this->processor->dx_info[ 'feeds' ] ) && count( $feeds ) === 1 ) {
+        if ( ( $feeds = $this->processor->dx_info[ 'feeds' ] ) && count( $feeds ) === 1 ) {
             $feed = reset( $feeds );
             if ( $file = $feed[ 'feed_file_name' ] ?? null ) {
                 $path = pathinfo( $file );
