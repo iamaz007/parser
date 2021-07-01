@@ -50,9 +50,9 @@ abstract class AbstractProcessor
     public const FEED_TYPE_PRODUCT = 'product';
     public const FEED_SOURCE_PRICE = 'price';
     public const FEED_SOURCE_SITE = 'site';
-    public const DX_ID = null;
-    public const DX_NAME = null;
-    public const DX_PREFIX = null;
+    public const DX_ID = 0;
+    public const DX_NAME = 'n/a';
+    public const DX_PREFIX = 'n/a';
     public const DX_SOURCE = null;
     /**
      * An array of css selectors that select elements of links (<a>) to product categories for their further traversal
