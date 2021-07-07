@@ -4,12 +4,12 @@ namespace App\Feeds\Vendors\ECN;
 
 use App\Feeds\Feed\FeedItem;
 use App\Feeds\Parser\HtmlParser;
+use App\Feeds\Utils\ParserCrawler;
 use Symfony\Component\DomCrawler\Crawler;
 use App\Helpers\StringHelper;
 
 class Parser extends HtmlParser
 {
-
     public function getMpn(): string
     {
         return $this->getText('.label__item-sku');
@@ -22,15 +22,15 @@ class Parser extends HtmlParser
 
     public function getListPrice(): ?float
     {
-        if ( $this->exists( '.tier-price-container ul li span span span' ) ) {
-            return $this->getMoney( '.tier-price-container ul li span span span' );
+        if ( $this->exists( '.tier-price-container ul li .price-container span' ) ) {
+            return $this->getMoney( '.tier-price-container ul li .price-container span' );
         }
     }
 
     public function getCostToUs(): float
     {
-        if ( $this->exists( '.tier-price-container ul li span span span' ) ) {
-            return $this->getMoney( '.tier-price-container ul li span span span' );
+        if ( $this->exists( '.tier-price-container ul li .price-container span' ) ) {
+            return $this->getMoney( '.tier-price-container ul li .price-container span' );
         }
     }
 
@@ -49,7 +49,24 @@ class Parser extends HtmlParser
 
     public function getImages(): array
     {
-        return $this->getSrcImages( '.fotorama__nav__frame--thumb .fotorama__thumb img' );
+        $regex = '/"data":\s(\[.*?])/';
+        preg_match( $regex, $this->node->html(), $matches );
+        $striped = stripslashes($matches[0]);
+        $replacedD = str_replace(['"data": [',']'], '',$striped);
+        
+        $regex2 = '/"full":(\".*?")/';
+        preg_match_all( $regex2, $replacedD, $matches2 );
+
+        $striped2 = [];
+        $replacing = ['"full":','\"'];
+        $replacer = ["",""];
+        for ($i=0; $i < count($matches2[0]); $i++) { 
+            $str = stripslashes($matches2[0][$i]);
+            $newPhrase = str_replace($replacing, $replacer, $str);
+            array_push($striped2, $newPhrase);
+        }
+        
+        return array_unique($striped2);
     }
 
     public function getAvail(): ?int
@@ -71,31 +88,15 @@ class Parser extends HtmlParser
     {
         $child = [];
 
-        $products = html_entity_decode( $this->getHtml( '.configurable-product__tier-price' ) );
-
-        $products_data = json_decode( $products, true, 512, JSON_THROW_ON_ERROR );
-
-        foreach ( $products_data as $product_data ) {
+        $this->filter('.configurable-product__tier-price')->each(function (ParserCrawler $c) use ($parent_fi)
+        {
             $fi = clone $parent_fi;
-
-            $product_name = [];
-            foreach ( $product_data[ 'attributes' ] as $attribute ) {
-                $product_name[] = ucfirst( $attribute );
-            }
-
-            $fi->setMpn( $product_data[ 'sku' ] );
-            $fi->setProduct( implode( ' ', $product_name ) );
-            $fi->setCostToUs( StringHelper::getMoney( $product_data[ 'display_price' ] ) );
-            $fi->setRAvail( $product_data[ 'is_in_stock' ] ? self::DEFAULT_AVAIL_NUMBER : 0 );
-
-            $fi->setDimX( $product_data[ 'dimensions' ][ 'width' ] ?: null );
-            $fi->setDimY( $product_data[ 'dimensions' ][ 'height' ] ?: null );
-            $fi->setDimZ( $product_data[ 'dimensions' ][ 'length' ] ?: null );
-
-            $fi->setWeight( $product_data[ 'weight' ] ?: null );
+            $fi->setMpn( $c->getText('.configurable-product__sku') );
+            $fi->setRAvail( self::DEFAULT_AVAIL_NUMBER );
+            $fi->setCostToUs($c->getMoney('.tier-price-container ul li .tier-price .price-container .price-wrapper'));
 
             $child[] = $fi;
-        }
+        });
         return $child;
     }
 }
