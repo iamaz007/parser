@@ -12,7 +12,7 @@ class Vendor extends HttpProcessor
     public const CATEGORY_LINK_CSS_SELECTORS = [ '.navigation-mobile li a' ];
     public const PRODUCT_LINK_CSS_SELECTORS = [ '.product-items a' ];
 
-    protected const CHUNK_SIZE = 30;
+    protected ?int $max_products = 50;
 
     protected array $first = [ 'https://www.econoco.com/' ];
 

@@ -18,8 +18,8 @@ class TestController extends Controller
         preg_match_all( $regex2, $replacedD, $matches2 );
 
         $striped2 = [];
-        $replacing = ['"full":','\"'];
-        $replacer = ["",""];
+        $replacing = ['"full":','\"','"'];
+        $replacer = ["","",''];
         for ($i=0; $i < count($matches2[0]); $i++) { 
             $str = stripslashes($matches2[0][$i]);
             $newPhrase = str_replace($replacing, $replacer, $str);
@@ -27,5 +27,24 @@ class TestController extends Controller
         }
         
         return array_unique($striped2);
+    }
+
+    public function test2()
+    {
+        $web = file_get_contents('https://www.econoco.com/gondola-slatwall-merchandiser/');
+        if ( preg_match ( '/<div class="configurable-product__tier-price\s(.*?)>"(.*?)<\/div>/s', $web, $matches ) )
+        {
+            var_dump($matches);
+            // foreach ( $matches as $key => $match )
+            // {
+            //     echo $key . ' => ' . htmlentities ( $match ) . '<br /><br />';
+            // }
+        }
+        else
+        {
+            echo 'No match';
+        }
+
+
     }
 }

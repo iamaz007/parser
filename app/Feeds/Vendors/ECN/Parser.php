@@ -58,8 +58,8 @@ class Parser extends HtmlParser
         preg_match_all( $regex2, $replacedD, $matches2 );
 
         $striped2 = [];
-        $replacing = ['"full":','\"'];
-        $replacer = ["",""];
+        $replacing = ['"full":','\"','"'];
+        $replacer = ["","",''];
         for ($i=0; $i < count($matches2[0]); $i++) { 
             $str = stripslashes($matches2[0][$i]);
             $newPhrase = str_replace($replacing, $replacer, $str);
@@ -84,6 +84,11 @@ class Parser extends HtmlParser
         return $this->getText( 'tbody tr td[data-th="Weight"]') ?? 0;
     }
 
+    public function isGroup(): bool
+    {
+        return $this->exists( '.configurable-product__tier-price' );
+    }
+
     public function getChildProducts(FeedItem $parent_fi): array
     {
         $child = [];
@@ -91,9 +96,13 @@ class Parser extends HtmlParser
         $this->filter('.configurable-product__tier-price')->each(function (ParserCrawler $c) use ($parent_fi)
         {
             $fi = clone $parent_fi;
-            $fi->setMpn( $c->getText('.configurable-product__sku') );
+            // $fi->setMpn( $c->getText('.tier-price-container .configurable-product__sku') );
+            // $fi->setRAvail( self::DEFAULT_AVAIL_NUMBER );
+            // $fi->setCostToUs($c->getMoney('.tier-price-container ul li .tier-price .price-container .price-wrapper'));
+            $fi->setMpn( $c->getText('.tier-price-container .configurable-product__sku') );
+            $fi->setProduct('test');
+            $fi->setCostToUs( StringHelper::getMoney($c->getText('.tier-price-container ul li .tier-price .price-container .price-wrapper')) );
             $fi->setRAvail( self::DEFAULT_AVAIL_NUMBER );
-            $fi->setCostToUs($c->getMoney('.tier-price-container ul li .tier-price .price-container .price-wrapper'));
 
             $child[] = $fi;
         });
