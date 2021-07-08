@@ -93,16 +93,16 @@ class Parser extends HtmlParser
     {
         $child = [];
 
-        $this->filter('.configurable-product__tier-price')->each(function (ParserCrawler $c) use ($parent_fi)
+        $this->filter('.configurable-product__tier-price')->each(function (ParserCrawler $c) use ($parent_fi, &$child)
         {
             $fi = clone $parent_fi;
-            // $fi->setMpn( $c->getText('.tier-price-container .configurable-product__sku') );
-            // $fi->setRAvail( self::DEFAULT_AVAIL_NUMBER );
-            // $fi->setCostToUs($c->getMoney('.tier-price-container ul li .tier-price .price-container .price-wrapper'));
-            $fi->setMpn( $c->getText('.tier-price-container .configurable-product__sku') );
-            $fi->setProduct('test');
-            $fi->setCostToUs( StringHelper::getMoney($c->getText('.tier-price-container ul li .tier-price .price-container .price-wrapper')) );
-            $fi->setRAvail( self::DEFAULT_AVAIL_NUMBER );
+            $fi->setMpn( $c->getText('.configurable-product__sku') );
+
+            $text = $c->getText( '.modal .check-stock__modal-container > p' );
+            $arr = explode(" ",$text);
+            $fi->setRAvail( $arr[2] ?? self::DEFAULT_AVAIL_NUMBER );
+
+            $fi->setCostToUs($c->getMoney('.price-container .price-wrapper'));
 
             $child[] = $fi;
         });
