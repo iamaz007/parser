@@ -28,23 +28,4 @@ class TestController extends Controller
         
         return array_unique($striped2);
     }
-
-    public function test2()
-    {
-        $web = file_get_contents('https://www.econoco.com/gondola-slatwall-merchandiser/');
-        if ( preg_match ( '/<div class="configurable-product__tier-price\s(.*?)>"(.*?)<\/div>/s', $web, $matches ) )
-        {
-            var_dump($matches);
-            // foreach ( $matches as $key => $match )
-            // {
-            //     echo $key . ' => ' . htmlentities ( $match ) . '<br /><br />';
-            // }
-        }
-        else
-        {
-            echo 'No match';
-        }
-
-
-    }
 }
