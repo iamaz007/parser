@@ -90,7 +90,7 @@ class Parser extends HtmlParser
     public function getDimX(): ?float
     {
         $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
-        if (isset($arr)) {
+        if (array_key_exists(0,$arr)) {
             return StringHelper::getFloat($arr[0]);
         } else {
             return 0;
@@ -101,7 +101,7 @@ class Parser extends HtmlParser
     public function getDimY(): ?float
     {
         $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
-        if (isset($arr)) {
+        if (array_key_exists(1,$arr)) {
             return StringHelper::getFloat($arr[1]);
         } else {
             return 0;
@@ -111,7 +111,7 @@ class Parser extends HtmlParser
     public function getDimZ(): ?float
     {
         $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
-        if (isset($arr)) {
+        if (array_key_exists(2,$arr)) {
             return StringHelper::getFloat($arr[2]);
         } else {
             return 0;
