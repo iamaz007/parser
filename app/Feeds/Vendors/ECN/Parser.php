@@ -39,14 +39,6 @@ class Parser extends HtmlParser
         return $this->getHtml('.product .value');
     }
 
-    public function getShortDescription(): array
-    {
-        if ($this->exists('.description .value')) {
-            return $this->getContent('.description .value p');
-        }
-        return [];
-    }
-
     public function getImages(): array
     {
         $regex = '/"data":\s\[(.*?)]/';
@@ -79,21 +71,54 @@ class Parser extends HtmlParser
         return 0;
     }
 
+    public function getAttributes(): ?array
+    {
+        $child = [];
+        $this->filter('.additional-attributes-wrapper table tbody tr')->each(function (ParserCrawler $c) use (&$child) {
+            if ($c->filter('td')->getNode(0)->textContent != 'Carton Dimensions' && $c->filter('td')->getNode(0)->textContent != 'Weight') {
+                $child[ $c->filter('td')->getNode(0)->textContent ] = StringHelper::mb_trim($c->filter('td')->getNode(1)->textContent);
+            }
+        });
+        return $child;
+    }
+
     public function getWeight(): ?float
     {
         return $this->getText('tbody tr td[data-th="Weight"]') ?? 0;
     }
 
-    public function getAttributes(): ?array
+    public function getDimX(): ?float
     {
-        $attributes = [];
-        $child = [];
-        $this->filter('.additional-attributes-wrapper table tbody tr')->each(function (ParserCrawler $c) use (&$child) {
-            $child[ strtolower(str_replace(' ', '_', $c->filter('td')->getNode(0)->textContent)) ] = StringHelper::mb_trim($c->filter('td')->getNode(1)->textContent);
-        });
-        $attributes = $child;
-        return $attributes;
+        $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
+        if (isset($arr)) {
+            return StringHelper::getFloat($arr[0]);
+        } else {
+            return 0;
+        }
+        
     }
+
+    public function getDimY(): ?float
+    {
+        $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
+        if (isset($arr)) {
+            return StringHelper::getFloat($arr[1]);
+        } else {
+            return 0;
+        }
+    }
+
+    public function getDimZ(): ?float
+    {
+        $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
+        if (isset($arr)) {
+            return StringHelper::getFloat($arr[2]);
+        } else {
+            return 0;
+        }
+    }
+
+    
 
     public function isGroup(): bool
     {
