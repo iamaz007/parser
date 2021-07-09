@@ -22,15 +22,15 @@ class Parser extends HtmlParser
 
     public function getListPrice(): ?float
     {
-        if ( $this->exists( '.tier-price-container ul li .price-container span' ) ) {
-            return $this->getMoney( '.tier-price-container ul li .price-container span' );
+        if ($this->exists('.tier-price-container ul li .price-container span')) {
+            return $this->getMoney('.tier-price-container ul li .price-container span');
         }
     }
 
     public function getCostToUs(): float
     {
-        if ( $this->exists( '.tier-price-container ul li .price-container span' ) ) {
-            return $this->getMoney( '.tier-price-container ul li .price-container span' );
+        if ($this->exists('.tier-price-container ul li .price-container span')) {
+            return $this->getMoney('.tier-price-container ul li .price-container span');
         }
     }
 
@@ -41,39 +41,39 @@ class Parser extends HtmlParser
 
     public function getShortDescription(): array
     {
-        if ( $this->exists( '.description .value' ) ) {
-            return $this->getContent( '.description .value p' );
+        if ($this->exists('.description .value')) {
+            return $this->getContent('.description .value p');
         }
         return [];
     }
 
     public function getImages(): array
     {
-        $regex = '/"data":\s(\[.*?])/';
-        preg_match( $regex, $this->node->html(), $matches );
+        $regex = '/"data":\s\[(.*?)]/';
+        preg_match($regex, $this->node->html(), $matches);
         $striped = stripslashes($matches[0]);
-        $replacedD = str_replace(['"data": [',']'], '',$striped);
-        
-        $regex2 = '/"full":(\".*?")/';
-        preg_match_all( $regex2, $replacedD, $matches2 );
+        $replacedD = str_replace(['"data": [', ']'], '', $striped);
+
+        $regex2 = '/"full":\"(.*?)"/';
+        preg_match_all($regex2, $replacedD, $matches2);
 
         $striped2 = [];
-        $replacing = ['"full":','\"','"'];
-        $replacer = ["","",''];
-        for ($i=0; $i < count($matches2[0]); $i++) { 
+        $replacing = ['"full":', '\"', '"'];
+        $replacer = ["", "", ''];
+        for ($i = 0; $i < count($matches2[0]); $i++) {
             $str = stripslashes($matches2[0][$i]);
             $newPhrase = str_replace($replacing, $replacer, $str);
             array_push($striped2, $newPhrase);
         }
-        
+
         return array_unique($striped2);
     }
 
     public function getAvail(): ?int
     {
-        if ( $this->exists( '.check-stock__modal-container' ) ) { 
-            $text = $this->getText( '.check-stock__modal-container > p' );
-            $arr = explode(" ",$text);
+        if ($this->exists('.check-stock__modal-container')) {
+            $text = $this->getText('.check-stock__modal-container > p');
+            $arr = explode(" ", $text);
             return $arr[2];
         }
         return 0;
@@ -81,26 +81,36 @@ class Parser extends HtmlParser
 
     public function getWeight(): ?float
     {
-        return $this->getText( 'tbody tr td[data-th="Weight"]') ?? 0;
+        return $this->getText('tbody tr td[data-th="Weight"]') ?? 0;
+    }
+
+    public function getAttributes(): ?array
+    {
+        $attributes = [];
+        $child = [];
+        $this->filter('.additional-attributes-wrapper table tbody tr')->each(function (ParserCrawler $c) use (&$child) {
+            $child[ strtolower(str_replace(' ', '_', $c->filter('td')->getNode(0)->textContent)) ] = StringHelper::mb_trim($c->filter('td')->getNode(1)->textContent);
+        });
+        $attributes = $child;
+        return $attributes;
     }
 
     public function isGroup(): bool
     {
-        return $this->exists( '.configurable-product__tier-price' );
+        return $this->exists('.configurable-product__tier-price');
     }
 
     public function getChildProducts(FeedItem $parent_fi): array
     {
         $child = [];
 
-        $this->filter('.configurable-product__tier-price')->each(function (ParserCrawler $c) use ($parent_fi, &$child)
-        {
+        $this->filter('.configurable-product__tier-price')->each(function (ParserCrawler $c) use ($parent_fi, &$child) {
             $fi = clone $parent_fi;
-            $fi->setMpn( $c->getText('.configurable-product__sku') );
+            $fi->setMpn($c->getText('.configurable-product__sku'));
 
-            $text = $c->getText( '.modal .check-stock__modal-container > p' );
-            $arr = explode(" ",$text);
-            $fi->setRAvail( $arr[2] ?? self::DEFAULT_AVAIL_NUMBER );
+            $text = $c->getText('.modal .check-stock__modal-container > p');
+            $arr = explode(" ", $text);
+            $fi->setRAvail($arr[2] ?? self::DEFAULT_AVAIL_NUMBER);
 
             $fi->setCostToUs($c->getMoney('.price-container .price-wrapper'));
 
