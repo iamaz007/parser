@@ -5,11 +5,38 @@ namespace App\Feeds\Vendors\ECN;
 use App\Feeds\Feed\FeedItem;
 use App\Feeds\Parser\HtmlParser;
 use App\Feeds\Utils\ParserCrawler;
+use App\Helpers\FeedHelper;
 use Symfony\Component\DomCrawler\Crawler;
 use App\Helpers\StringHelper;
 
 class Parser extends HtmlParser
 {
+
+    public function beforeParse(): void
+    {
+        $this->filter('.additional-attributes-wrapper table tbody tr')->each(function (ParserCrawler $c) {
+            $key = $c->filter('td')->getNode(0)->textContent;
+            $value = $c->filter('td')->getNode(1)->textContent;
+
+            switch ($key) {
+                // case 'Dimensions':
+
+                //     break;
+                case 'Carton Dimensions':
+                    $this->ship_dims = FeedHelper::getDimsInString($value, 'x');
+                    break;
+                case 'Weight':
+                    $this->weight = (float)$value;
+                    break;
+                
+                default:
+                    $this->attributes[$key] = $value;
+                    break;
+            }
+        });
+        
+    }
+
     public function getMpn(): string
     {
         return $this->getText('.label__item-sku');
@@ -71,52 +98,52 @@ class Parser extends HtmlParser
         return 0;
     }
 
-    public function getAttributes(): ?array
-    {
-        $child = [];
-        $this->filter('.additional-attributes-wrapper table tbody tr')->each(function (ParserCrawler $c) use (&$child) {
-            if ($c->filter('td')->getNode(0)->textContent != 'Carton Dimensions' && $c->filter('td')->getNode(0)->textContent != 'Weight') {
-                $child[ $c->filter('td')->getNode(0)->textContent ] = StringHelper::mb_trim($c->filter('td')->getNode(1)->textContent);
-            }
-        });
-        return $child;
-    }
+    // public function getAttributes(): ?array
+    // {
+    //     $child = [];
+    //     $this->filter('.additional-attributes-wrapper table tbody tr')->each(function (ParserCrawler $c) use (&$child) {
+    //         if ($c->filter('td')->getNode(0)->textContent != 'Carton Dimensions' && $c->filter('td')->getNode(0)->textContent != 'Weight') {
+    //             $child[ $c->filter('td')->getNode(0)->textContent ] = StringHelper::mb_trim($c->filter('td')->getNode(1)->textContent);
+    //         }
+    //     });
+    //     return $child;
+    // }
 
-    public function getWeight(): ?float
-    {
-        return $this->getText('tbody tr td[data-th="Weight"]') ?? 0;
-    }
+    // public function getWeight(): ?float
+    // {
+    //     return $this->getText('tbody tr td[data-th="Weight"]') ?? 0;
+    // }
 
-    public function getDimX(): ?float
-    {
-        $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
-        if (array_key_exists(0,$arr)) {
-            return StringHelper::getFloat($arr[0]);
-        } else {
-            return 0;
-        }
+    // public function getDimX(): ?float
+    // {
+    //     $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
+    //     if (array_key_exists(0,$arr)) {
+    //         return StringHelper::getFloat($arr[0]);
+    //     } else {
+    //         return 0;
+    //     }
         
-    }
+    // }
 
-    public function getDimY(): ?float
-    {
-        $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
-        if (array_key_exists(1,$arr)) {
-            return StringHelper::getFloat($arr[1]);
-        } else {
-            return 0;
-        }
-    }
+    // public function getDimY(): ?float
+    // {
+    //     $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
+    //     if (array_key_exists(1,$arr)) {
+    //         return StringHelper::getFloat($arr[1]);
+    //     } else {
+    //         return 0;
+    //     }
+    // }
 
-    public function getDimZ(): ?float
-    {
-        $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
-        if (array_key_exists(2,$arr)) {
-            return StringHelper::getFloat($arr[2]);
-        } else {
-            return 0;
-        }
-    }
+    // public function getDimZ(): ?float
+    // {
+    //     $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
+    //     if (array_key_exists(2,$arr)) {
+    //         return StringHelper::getFloat($arr[2]);
+    //     } else {
+    //         return 0;
+    //     }
+    // }
 
     
 
