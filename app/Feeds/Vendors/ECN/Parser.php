@@ -30,7 +30,7 @@ class Parser extends HtmlParser
                     break;
                 
                 default:
-                    $this->attributes[$key] = $value;
+                    $this->attributes[$key] = StringHelper::mb_trim($value);
                     break;
             }
         });
@@ -98,8 +98,8 @@ class Parser extends HtmlParser
         return 0;
     }
 
-    // public function getAttributes(): ?array
-    // {
+    public function getAttributes(): ?array
+    {
     //     $child = [];
     //     $this->filter('.additional-attributes-wrapper table tbody tr')->each(function (ParserCrawler $c) use (&$child) {
     //         if ($c->filter('td')->getNode(0)->textContent != 'Carton Dimensions' && $c->filter('td')->getNode(0)->textContent != 'Weight') {
@@ -107,43 +107,47 @@ class Parser extends HtmlParser
     //         }
     //     });
     //     return $child;
-    // }
+            return $this->attributes ?: null;
+    }
 
-    // public function getWeight(): ?float
-    // {
+    public function getWeight(): ?float
+    {
+        return $this->weight ?? 0;
     //     return $this->getText('tbody tr td[data-th="Weight"]') ?? 0;
-    // }
+    }
 
-    // public function getDimX(): ?float
-    // {
+    public function getDimX(): ?float
+    {
     //     $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
     //     if (array_key_exists(0,$arr)) {
     //         return StringHelper::getFloat($arr[0]);
     //     } else {
     //         return 0;
     //     }
-        
-    // }
+        return $this->ship_dims['x'] ?? null;   
+    }
 
-    // public function getDimY(): ?float
-    // {
+    public function getDimY(): ?float
+    {
     //     $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
     //     if (array_key_exists(1,$arr)) {
     //         return StringHelper::getFloat($arr[1]);
     //     } else {
     //         return 0;
     //     }
-    // }
+        return $this->ship_dims['y'] ?? null;
+    }
 
-    // public function getDimZ(): ?float
-    // {
+    public function getDimZ(): ?float
+    {
     //     $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
     //     if (array_key_exists(2,$arr)) {
     //         return StringHelper::getFloat($arr[2]);
     //     } else {
     //         return 0;
     //     }
-    // }
+        return $this->ship_dims['z'] ?? null;
+    }
 
     
 
