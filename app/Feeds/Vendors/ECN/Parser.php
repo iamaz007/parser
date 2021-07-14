@@ -11,6 +11,9 @@ use App\Helpers\StringHelper;
 
 class Parser extends HtmlParser
 {
+    private array $attributes = [];
+    private array $ship_dims = [];
+    private float $weight = 0;
 
     public function beforeParse(): void
     {
@@ -19,9 +22,6 @@ class Parser extends HtmlParser
             $value = $c->filter('td')->getNode(1)->textContent;
 
             switch ($key) {
-                // case 'Dimensions':
-
-                //     break;
                 case 'Carton Dimensions':
                     $this->ship_dims = FeedHelper::getDimsInString($value, 'x');
                     break;
@@ -63,7 +63,7 @@ class Parser extends HtmlParser
 
     public function getDescription(): string
     {
-        return $this->getHtml('.product .value');
+        return $this->getHtml('#description .product .value');
     }
 
     public function getImages(): array
@@ -100,60 +100,50 @@ class Parser extends HtmlParser
 
     public function getAttributes(): ?array
     {
-    //     $child = [];
-    //     $this->filter('.additional-attributes-wrapper table tbody tr')->each(function (ParserCrawler $c) use (&$child) {
-    //         if ($c->filter('td')->getNode(0)->textContent != 'Carton Dimensions' && $c->filter('td')->getNode(0)->textContent != 'Weight') {
-    //             $child[ $c->filter('td')->getNode(0)->textContent ] = StringHelper::mb_trim($c->filter('td')->getNode(1)->textContent);
-    //         }
-    //     });
-    //     return $child;
             return $this->attributes ?: null;
     }
 
     public function getWeight(): ?float
     {
-        return $this->weight ?? 0;
-    //     return $this->getText('tbody tr td[data-th="Weight"]') ?? 0;
+        return $this->weight ?: null;
     }
 
-    public function getDimX(): ?float
+    public function getShippingDimX(): ?float
     {
-    //     $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
-    //     if (array_key_exists(0,$arr)) {
-    //         return StringHelper::getFloat($arr[0]);
-    //     } else {
-    //         return 0;
-    //     }
         return $this->ship_dims['x'] ?? null;   
     }
 
-    public function getDimY(): ?float
+    public function getShippingDimY(): ?float
     {
-    //     $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
-    //     if (array_key_exists(1,$arr)) {
-    //         return StringHelper::getFloat($arr[1]);
-    //     } else {
-    //         return 0;
-    //     }
         return $this->ship_dims['y'] ?? null;
     }
 
-    public function getDimZ(): ?float
+    public function getShippingDimZ(): ?float
     {
-    //     $arr = explode( 'x', $this->getText('tbody tr td[data-th="Carton Dimensions"]'));
-    //     if (array_key_exists(2,$arr)) {
-    //         return StringHelper::getFloat($arr[2]);
-    //     } else {
-    //         return 0;
-    //     }
         return $this->ship_dims['z'] ?? null;
     }
-
-    
 
     public function isGroup(): bool
     {
         return $this->exists('.configurable-product__tier-price');
+    }
+
+    public function getProductFiles(): array
+    {
+        $files = [];
+
+        $this->filter('.downloads-item .item-link a')->each(function (ParserCrawler $node) use (&$files)
+        {
+            $link = $node->attr('href');
+            if (!empty($link) && str_contains($link,'http')) {
+                $files[] = [
+                    'name'=> $node->attr('title') ?: $this->getProduct(),
+                    'link'=> $link,
+                ];
+            }
+        });
+
+        return $files;
     }
 
     public function getChildProducts(FeedItem $parent_fi): array
@@ -163,10 +153,11 @@ class Parser extends HtmlParser
         $this->filter('.configurable-product__tier-price')->each(function (ParserCrawler $c) use ($parent_fi, &$child) {
             $fi = clone $parent_fi;
             $fi->setMpn($c->getText('.configurable-product__sku'));
-
+            $fi->setProduct($c->getText('.product-specs-container .additional-attributes-wrapper table tbody tr td[data-th="Holds"]'));
+            $fi->setMinAmount((int)($c->getText('.product-specs-container .additional-attributes-wrapper table tbody tr td[data-th="Pieces Per Full Carton"]')));
             $text = $c->getText('.modal .check-stock__modal-container > p');
             $arr = explode(" ", $text);
-            $fi->setRAvail($arr[2] ?? self::DEFAULT_AVAIL_NUMBER);
+            $fi->setRAvail($arr[2] ?? 0);
 
             $fi->setCostToUs($c->getMoney('.price-container .price-wrapper'));
 
