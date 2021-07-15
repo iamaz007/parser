@@ -183,7 +183,12 @@ class Parser extends HtmlParser
             $fi = clone $parent_fi;
             $fi->setMpn($c->getText('.configurable-product__sku'));
             $fi->setProduct($this->childArray['attributes'][$this->counterKey]['options'][$this->counter]['label']);
-            $fi->setMinAmount((int)($c->getText('.product-specs-container .additional-attributes-wrapper table tbody tr td[data-th="Pieces Per Full Carton"]')));
+            if ($c->exists('.product-specs-container .additional-attributes-wrapper table tbody tr td[data-th="Multiple Cartons"]')) {
+                $fi->setMinAmount((int)($c->getText('.product-specs-container .additional-attributes-wrapper table tbody tr td[data-th="Multiple Cartons"]')));
+            } else {
+                $fi->setMinAmount((int)($c->getText('.product-specs-container .additional-attributes-wrapper table tbody tr td[data-th="Pieces Per Full Carton"]')));
+            }
+            
             $text = $c->getText('.modal .check-stock__modal-container > p');
             $arr = explode(" ", $text);
             $fi->setRAvail($arr[2] ?? 0);
