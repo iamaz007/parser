@@ -31,6 +31,21 @@ class TestController extends Controller
 
     public function test2()
     {
-        
+        $web = file_get_contents('https://www.econoco.com/retail-display-mannequins/retail-mannequin-costumers/costumer-with-shoulder-bar-non-adjustable-height/#1492');
+        $regex = '/spConfig": ({.*?}),\s/';
+        preg_match( $regex, $web, $matches );
+        $data = json_decode(mb_convert_encoding($matches[1],'UTF-8','UTF-8'), true);
+        $counter = 0;
+
+        return array_key_first($data['attributes']);
+        // foreach ($data['attributes'] as $key => $value) {
+        //     // echo $data['attributes'][$key]['options'][$counter]['label'];
+        //     $arr = $data['attributes'][$key]['options'];
+        //     for ($i=0; $i < count($arr); $i++) { 
+                
+        //     }
+        //     $counter++;
+        // }
+        // return $data['attributes'];
     }
 }

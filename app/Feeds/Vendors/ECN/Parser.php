@@ -13,7 +13,12 @@ class Parser extends HtmlParser
 {
     private array $attributes = [];
     private array $ship_dims = [];
+    private array $dims = [];
     private float $weight = 0;
+
+    private array $childArray = [];
+    private int $counter = 0;
+    private String $counterKey = '';
 
     public function beforeParse(): void
     {
@@ -22,6 +27,9 @@ class Parser extends HtmlParser
             $value = $c->filter('td')->getNode(1)->textContent;
 
             switch ($key) {
+                case 'Dimensions':
+                    $this->dims = FeedHelper::getDimsInString($value, 'x');
+                    break;
                 case 'Carton Dimensions':
                     $this->ship_dims = FeedHelper::getDimsInString($value, 'x');
                     break;
@@ -34,7 +42,14 @@ class Parser extends HtmlParser
                     break;
             }
         });
-        
+
+        // for child products
+        $regex = '/spConfig": ({.*?}),\s/';
+        preg_match($regex, $this->node->html(), $matches);
+        if (count($matches) > 0) {
+            $this->childArray = json_decode(mb_convert_encoding($matches[1],'UTF-8','UTF-8'), true);
+            $this->counterKey = array_key_first($this->childArray['attributes']);
+        }
     }
 
     public function getMpn(): string
@@ -47,13 +62,6 @@ class Parser extends HtmlParser
         return $this->getText('.product-info-title');
     }
 
-    public function getListPrice(): ?float
-    {
-        if ($this->exists('.tier-price-container ul li .price-container span')) {
-            return $this->getMoney('.tier-price-container ul li .price-container span');
-        }
-    }
-
     public function getCostToUs(): float
     {
         if ($this->exists('.tier-price-container ul li .price-container span')) {
@@ -63,7 +71,13 @@ class Parser extends HtmlParser
 
     public function getDescription(): string
     {
-        return $this->getHtml('#description .product .value');
+        if ($this->exists('#description .product .value table')) {
+            return $this->getHtml('#description .product .value table tbody tr');
+        } else {
+            return $this->getHtml('#description .product .value');
+        }
+        
+        
     }
 
     public function getImages(): array
@@ -108,6 +122,21 @@ class Parser extends HtmlParser
         return $this->weight ?: null;
     }
 
+    public function getDimX(): ?float
+    {
+        return $this->dims['x'] ?? null;   
+    }
+
+    public function getDimY(): ?float
+    {
+        return $this->dims['y'] ?? null;
+    }
+
+    public function getDimZ(): ?float
+    {
+        return $this->dims['z'] ?? null;
+    }
+
     public function getShippingDimX(): ?float
     {
         return $this->ship_dims['x'] ?? null;   
@@ -149,11 +178,11 @@ class Parser extends HtmlParser
     public function getChildProducts(FeedItem $parent_fi): array
     {
         $child = [];
-
+        $this->counter = 0;
         $this->filter('.configurable-product__tier-price')->each(function (ParserCrawler $c) use ($parent_fi, &$child) {
             $fi = clone $parent_fi;
             $fi->setMpn($c->getText('.configurable-product__sku'));
-            $fi->setProduct($c->getText('.product-specs-container .additional-attributes-wrapper table tbody tr td[data-th="Holds"]'));
+            $fi->setProduct($this->childArray['attributes'][$this->counterKey]['options'][$this->counter]['label']);
             $fi->setMinAmount((int)($c->getText('.product-specs-container .additional-attributes-wrapper table tbody tr td[data-th="Pieces Per Full Carton"]')));
             $text = $c->getText('.modal .check-stock__modal-container > p');
             $arr = explode(" ", $text);
@@ -162,6 +191,8 @@ class Parser extends HtmlParser
             $fi->setCostToUs($c->getMoney('.price-container .price-wrapper'));
 
             $child[] = $fi;
+
+            $this->counter++; // incrementing to get next child product name
         });
         return $child;
     }
