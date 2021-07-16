@@ -178,8 +178,14 @@ class Parser extends HtmlParser
     public function getChildProducts(FeedItem $parent_fi): array
     {
         $child = [];
+        
         $this->counter = 0;
         $this->filter('.configurable-product__tier-price')->each(function (ParserCrawler $c) use ($parent_fi, &$child) {
+            $dims = [];
+            $ship_dims = [];
+            $weight = 0;
+            $attributes = [];
+
             $fi = clone $parent_fi;
             $fi->setMpn($c->getText('.configurable-product__sku'));
             $fi->setProduct($this->childArray['attributes'][$this->counterKey]['options'][$this->counter]['label']);
@@ -195,10 +201,40 @@ class Parser extends HtmlParser
 
             $fi->setCostToUs($c->getMoney('.price-container .price-wrapper'));
 
-            $child[] = $fi;
+            $this->filter('.additional-attributes-wrapper table tbody tr')->each(function (ParserCrawler $c) use 
+            (&$fi, &$dims, &$ship_dims, &$weight, &$attributes) {
+                $key = $c->filter('td')->getNode(0)->textContent;
+                $value = $c->filter('td')->getNode(1)->textContent;
 
-            $this->counter++; // incrementing to get next child product name
+                switch ($key) {
+                    case 'Dimensions':
+                        $dims = FeedHelper::getDimsInString($value, 'x');
+                        break;
+                    case 'Carton Dimensions':
+                        $ship_dims = FeedHelper::getDimsInString($value, 'x');
+                        break;
+                    case 'Weight':
+                        $weight = (float)$value;
+                        break;
+                    
+                    default:
+                        $attributes[$key] = StringHelper::mb_trim($value);
+                        break;
+                }
+
+                $fi->setWeight($weight);
+                $fi->setDimX($dims['x'] ?? null);
+                $fi->setDimY($dims['y'] ?? null);
+                $fi->setDimZ($dims['z'] ?? null);
+                $fi->setShippingDimX($ship_dims['x'] ?? null);
+                $fi->setShippingDimY($ship_dims['y'] ?? null);
+                $fi->setShippingDimZ($ship_dims['z'] ?? null);
+                $fi->setAttributes($attributes);
+            });
+
+            $child[] = $fi;
         });
+        $this->counter++; // incrementing to get next child product name
         return $child;
     }
 }
