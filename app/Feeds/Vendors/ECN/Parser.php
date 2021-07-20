@@ -6,7 +6,6 @@ use App\Feeds\Feed\FeedItem;
 use App\Feeds\Parser\HtmlParser;
 use App\Feeds\Utils\ParserCrawler;
 use App\Helpers\FeedHelper;
-use Symfony\Component\DomCrawler\Crawler;
 use App\Helpers\StringHelper;
 
 class Parser extends HtmlParser
@@ -67,6 +66,22 @@ class Parser extends HtmlParser
         if ($this->exists('.tier-price-container ul li .price-container span')) {
             return $this->getMoney('.tier-price-container ul li .price-container span');
         }
+        return 0;
+    }
+
+    public function getCategories(): array
+    {
+        $categories = [];
+        $categories = $this->getContent( '.breadcrumbs ul li a' );
+        $valuesToRemove = ['Home',$this->getText('.product-info-title')];
+
+        for ($i=0; $i < count($valuesToRemove); $i++) { 
+            $key = array_search($valuesToRemove[$i], $categories);
+            if (false !== $key) {
+                unset($categories[$key]);
+            }
+        }
+        return $categories;
     }
 
     public function getDescription(): string
@@ -93,8 +108,9 @@ class Parser extends HtmlParser
         $striped2 = [];
         $replacing = ['"full":', '\"', '"'];
         $replacer = ["", "", ''];
-        for ($i = 0; $i < count($matches2[0]); $i++) {
-            $str = stripslashes($matches2[0][$i]);
+
+        foreach ($matches2[0] as $item) {
+            $str = stripslashes($item);
             $newPhrase = str_replace($replacing, $replacer, $str);
             array_push($striped2, $newPhrase);
         }
@@ -114,7 +130,7 @@ class Parser extends HtmlParser
 
     public function getAttributes(): ?array
     {
-            return $this->attributes ?: null;
+        return $this->attributes ?: null;
     }
 
     public function getWeight(): ?float
@@ -201,10 +217,10 @@ class Parser extends HtmlParser
 
             $fi->setCostToUs($c->getMoney('.price-container .price-wrapper'));
 
-            $this->filter('.additional-attributes-wrapper table tbody tr')->each(function (ParserCrawler $c) use 
+            $c->filter('.additional-attributes-wrapper table tbody tr')->each(function (ParserCrawler $node) use 
             (&$fi, &$dims, &$ship_dims, &$weight, &$attributes) {
-                $key = $c->filter('td')->getNode(0)->textContent;
-                $value = $c->filter('td')->getNode(1)->textContent;
+                $key = $node->filter('td')->getNode(0)->textContent;
+                $value = $node->filter('td')->getNode(1)->textContent;
 
                 switch ($key) {
                     case 'Dimensions':

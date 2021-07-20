@@ -48,4 +48,9 @@ class TestController extends Controller
         // }
         // return $data['attributes'];
     }
+
+    public function getCateg()
+    {
+        $web = file_get_contents('https://www.econoco.com/retail-display-mannequins/retail-mannequin-costumers/costumer-with-shoulder-bar-non-adjustable-height/#1492');
+    }
 }

@@ -2,10 +2,7 @@
 
 namespace App\Feeds\Vendors\ECN;
 
-use App\Feeds\Feed\FeedItem;
 use App\Feeds\Processor\HttpProcessor;
-use App\Feeds\Utils\Data;
-use App\Feeds\Utils\Link;
 
 class Vendor extends HttpProcessor
 {
