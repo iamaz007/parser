@@ -71,17 +71,7 @@ class Parser extends HtmlParser
 
     public function getCategories(): array
     {
-        $categories = [];
-        $categories = $this->getContent( '.breadcrumbs ul li a' );
-        $valuesToRemove = ['Home',$this->getText('.product-info-title')];
-
-        for ($i=0; $i < count($valuesToRemove); $i++) { 
-            $key = array_search($valuesToRemove[$i], $categories);
-            if (false !== $key) {
-                unset($categories[$key]);
-            }
-        }
-        return $categories;
+        return array_values( array_slice( $this->getContent( '.breadcrumbs ul li a' ), 1 ) );
     }
 
     public function getDescription(): string
