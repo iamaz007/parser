@@ -3,14 +3,10 @@
 namespace App\Feeds\Vendors\MOL;
 
 use App\Feeds\Parser\HtmlParser;
-use App\Feeds\Utils\ParserCrawler;
-use App\Helpers\StringHelper;
 
 class Parser extends HtmlParser
 {
-    private string $url = 'https://www.moriental.com/';
     private string $selector = "center table table tr .data";
-    private array $imgs = [];
     private array $short_desc = [];
 
     public function beforeParse(): void
@@ -42,7 +38,6 @@ class Parser extends HtmlParser
 
     public function getImages(): array
     {
-        // return $this->imgs;
         return $this->getSrcImages('.price-info a img');
     }
 
