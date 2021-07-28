@@ -8,9 +8,20 @@ class Parser extends HtmlParser
 {
     private string $selector = "center table table tr .data";
     private array $short_desc = [];
+    private array $imgs = [];
 
     public function beforeParse(): void
     {
+        // get imgaes
+        $tmpImgs = array_unique($this->getSrcImages('.price-info a img'));
+        if (count($tmpImgs) > 0) {
+            $this->imgs = $tmpImgs;
+        } else {
+            $this->imgs = $this->getSrcImages('#listing_main_image_link img');
+        }
+        
+
+
         // get desc
         $tempShortDesc = $this->getContent('.frame-ht table[width="98%"] .item .alternative .item span');
         if (count($tempShortDesc) > 0) {
@@ -38,7 +49,7 @@ class Parser extends HtmlParser
 
     public function getImages(): array
     {
-        return $this->getSrcImages('.price-info a img');
+        return $this->imgs;
     }
 
     public function getShortDescription(): array
@@ -50,5 +61,10 @@ class Parser extends HtmlParser
     {
         $arr = $this->getContent('center .data table .frame-ht .data table table .item a:nth-child(2)');
         return [array_values($arr)[0]];
+    }
+
+    public function getAvail(): ?int
+    {
+        return self::DEFAULT_AVAIL_NUMBER;
     }
 }
