@@ -42,6 +42,7 @@ class Parser extends HtmlParser
         if (count($matches) > 0) {
             if ($matches[1] != '') {
                 $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
+                preg_replace($regex, '', $this->short_desc);
             }
         }
         else
@@ -51,6 +52,7 @@ class Parser extends HtmlParser
             if (count($matches) > 0) {
                 if ($matches[1] != '') {
                     $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
+                    preg_replace($regex, '', $this->short_desc);
                 }
             }
             else
@@ -60,6 +62,7 @@ class Parser extends HtmlParser
                 if (count($matches) > 0) {
                     if ($matches[1] != '') {
                         $this->dims = FeedHelper::getDimsInString($matches[1], ',');
+                        preg_replace($regex, '', $this->short_desc);
                     }
                 }
                 else
@@ -69,6 +72,7 @@ class Parser extends HtmlParser
                     if (count($matches) > 0) {
                         if ($matches[1] != '') {
                             $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
+                            preg_replace($regex, '', $this->short_desc);
                         }
                     }
                     else
@@ -78,6 +82,7 @@ class Parser extends HtmlParser
                         if (count($matches) > 0) {
                             if ($matches[1] != '') {
                                 $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
+                                preg_replace($regex, '', $this->short_desc);
                             }
                         }
                         {
@@ -86,6 +91,7 @@ class Parser extends HtmlParser
                             if (count($matches) > 0) {
                                 if ($matches[1] != '') {
                                     $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
+                                    preg_replace($regex, '', $this->short_desc);
                                 }
                             }
                         }
