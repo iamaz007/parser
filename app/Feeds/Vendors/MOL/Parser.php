@@ -15,10 +15,11 @@ class Parser extends HtmlParser
     public function beforeParse(): void
     {
         // get imgaes
-        $tmpImgs = array_unique($this->getSrcImages('.price-info a img'));
-        if (count($tmpImgs) > 0) {
-            $this->imgs = $tmpImgs;
-        } else {
+        $tmpImgs = array_unique($this->getLinks('.price-info a'));
+        $this->imgs = $tmpImgs;
+        array_pop($this->imgs);
+        array_pop($this->imgs);
+        if (count($this->imgs) <= 0) {
             $this->imgs = $this->getSrcImages('#listing_main_image_link img');
         }
 
@@ -33,7 +34,6 @@ class Parser extends HtmlParser
             } else {
                 $this->short_desc = $this->getContent('.item li');
             }
-            
         }
 
         // get dimensions
@@ -42,11 +42,9 @@ class Parser extends HtmlParser
         if (count($matches) > 0) {
             if ($matches[1] != '') {
                 $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
-                preg_replace($regex, '', $this->short_desc);
+                preg_replace("/Dimensions: (.*?)/", '', $this->short_desc);
             }
-        }
-        else
-        {
+        } else {
             $regex = '/Approximate Dimensions: (.*")/';
             preg_match($regex, $this->node->html(), $matches);
             if (count($matches) > 0) {
@@ -54,9 +52,7 @@ class Parser extends HtmlParser
                     $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
                     preg_replace($regex, '', $this->short_desc);
                 }
-            }
-            else
-            {
+            } else {
                 $regex = '/Size: (.*\))/';
                 preg_match($regex, $this->node->html(), $matches);
                 if (count($matches) > 0) {
@@ -64,9 +60,7 @@ class Parser extends HtmlParser
                         $this->dims = FeedHelper::getDimsInString($matches[1], ',');
                         preg_replace($regex, '', $this->short_desc);
                     }
-                }
-                else
-                {
+                } else {
                     $regex = '/Size Approx: (.*")/';
                     preg_match($regex, $this->node->html(), $matches);
                     if (count($matches) > 0) {
@@ -74,24 +68,21 @@ class Parser extends HtmlParser
                             $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
                             preg_replace($regex, '', $this->short_desc);
                         }
-                    }
-                    else
-                    {
+                    } else {
                         $regex = '/<div>Dimensions Appox: (.*)<\/div>/';
                         preg_match($regex, $this->node->html(), $matches);
                         if (count($matches) > 0) {
                             if ($matches[1] != '') {
                                 $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
-                                preg_replace($regex, '', $this->short_desc);
+                                preg_replace("/Dimensions Appox: (.*)/", '', $this->short_desc);
                             }
-                        }
-                        {
+                        } {
                             $regex = '/<div>Each Cat Measures Approximately: (.*)<\/div>/';
                             preg_match($regex, $this->node->html(), $matches);
                             if (count($matches) > 0) {
                                 if ($matches[1] != '') {
                                     $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
-                                    preg_replace($regex, '', $this->short_desc);
+                                    preg_replace("/Each Cat Measures Approximately: (.*)/", '', $this->short_desc);
                                 }
                             }
                         }
@@ -99,16 +90,16 @@ class Parser extends HtmlParser
                 }
             }
         }
-        
     }
+    
     public function getMpn(): string
     {
-        return $this->getText($this->selector.' #product_id');
+        return $this->getText($this->selector . ' #product_id');
     }
 
     public function getProduct(): string
     {
-        return $this->getText($this->selector.' .page_headers');
+        return $this->getText($this->selector . ' .page_headers');
     }
 
     public function getImages(): array
@@ -134,7 +125,7 @@ class Parser extends HtmlParser
 
     public function getDimX(): ?float
     {
-        return $this->dims['x'] ?? null;   
+        return $this->dims['x'] ?? null;
     }
 
     public function getDimY(): ?float
