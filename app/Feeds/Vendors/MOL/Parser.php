@@ -91,7 +91,7 @@ class Parser extends HtmlParser
             }
         }
     }
-    
+
     public function getMpn(): string
     {
         return $this->getText($this->selector . ' #product_id');
@@ -110,6 +110,11 @@ class Parser extends HtmlParser
     public function getShortDescription(): array
     {
         return $this->short_desc;
+    }
+
+    public function getDescription(): string
+    {
+        return $this->getText('.item .alternative .item');
     }
 
     public function getCategories(): array
