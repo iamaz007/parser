@@ -4,6 +4,7 @@ namespace App\Feeds\Vendors\MOL;
 
 use App\Feeds\Parser\HtmlParser;
 use App\Helpers\FeedHelper;
+use App\Helpers\StringHelper;
 
 class Parser extends HtmlParser
 {
@@ -11,6 +12,20 @@ class Parser extends HtmlParser
     private array $short_desc = [];
     private array $imgs = [];
     private array $dims = [];
+    private array $dimensRegex = [
+        '/Dimensions: (.*")/',
+        '/DIMENSIONS: (.*")/',
+        '/Tray Dimensions: (.*")/',
+        '/Tiles Dimensions: (.*")/',
+        '/Approximate Dimensions: (.*")/',
+        '/APPROXIMATE DIMENSIONS: (.*")/',
+        '/Size: (.*\))/',
+        '/Size Approx: (.*")/',
+        '/Dimensions Appox: (.*)/',
+        '/Each Cat Measures Approximately: (.*)/'
+    ];
+    private string $fullDesc = '';
+    private array $attributes = [];
 
     public function beforeParse(): void
     {
@@ -23,7 +38,11 @@ class Parser extends HtmlParser
             $this->imgs = $this->getSrcImages('#listing_main_image_link img');
         }
 
-        // get desc
+        // get full desc
+        $this->fullDesc = $this->getText('.item .alternative .item');
+        $tempFullDesc = $this->getHtml('.item .alternative .item');
+
+        // get short desc
         $tempShortDesc = $this->getContent('.frame-ht table[width="98%"] .item .alternative .item span');
         if (count($tempShortDesc) > 0) {
             $this->short_desc = $tempShortDesc;
@@ -36,57 +55,31 @@ class Parser extends HtmlParser
             }
         }
 
-        // get dimensions
-        $regex = '/<li>Dimensions: (.*?)<\/li>/';
-        preg_match($regex, $this->node->html(), $matches);
-        if (count($matches) > 0) {
-            if ($matches[1] != '') {
-                $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
-                preg_replace("/Dimensions: (.*?)/", '', $this->short_desc);
+        // get attr
+        $tempFullDescText = preg_split('/<[^>]*>/', $tempFullDesc);
+        $trimmed_array = array_map('trim', $tempFullDescText);
+        for ($i=0; $i < count($trimmed_array); $i++) { 
+            if (strpos($trimmed_array[$i],':') !== false) {
+                $tempArr = explode(":",$trimmed_array[$i]);
+                $this->attributes[StringHelper::mb_trim($tempArr[0])] = StringHelper::mb_trim($tempArr[1]);
             }
-        } else {
-            $regex = '/Approximate Dimensions: (.*")/';
-            preg_match($regex, $this->node->html(), $matches);
+        }
+
+        // get dimensions
+        for ($i=0; $i < count($this->dimensRegex); $i++) { 
+            preg_match($this->dimensRegex[$i], $this->node->html(), $matches);
             if (count($matches) > 0) {
-                if ($matches[1] != '') {
+                $this->short_desc = preg_replace($this->dimensRegex[$i], '', $this->short_desc);
+                $this->fullDesc = preg_replace($this->dimensRegex[$i], '', $this->fullDesc);
+                if (strpos($matches[1], 'x') !== false ) {
                     $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
-                    preg_replace($regex, '', $this->short_desc);
                 }
-            } else {
-                $regex = '/Size: (.*\))/';
-                preg_match($regex, $this->node->html(), $matches);
-                if (count($matches) > 0) {
-                    if ($matches[1] != '') {
-                        $this->dims = FeedHelper::getDimsInString($matches[1], ',');
-                        preg_replace($regex, '', $this->short_desc);
-                    }
-                } else {
-                    $regex = '/Size Approx: (.*")/';
-                    preg_match($regex, $this->node->html(), $matches);
-                    if (count($matches) > 0) {
-                        if ($matches[1] != '') {
-                            $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
-                            preg_replace($regex, '', $this->short_desc);
-                        }
-                    } else {
-                        $regex = '/<div>Dimensions Appox: (.*)<\/div>/';
-                        preg_match($regex, $this->node->html(), $matches);
-                        if (count($matches) > 0) {
-                            if ($matches[1] != '') {
-                                $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
-                                preg_replace("/Dimensions Appox: (.*)/", '', $this->short_desc);
-                            }
-                        } {
-                            $regex = '/<div>Each Cat Measures Approximately: (.*)<\/div>/';
-                            preg_match($regex, $this->node->html(), $matches);
-                            if (count($matches) > 0) {
-                                if ($matches[1] != '') {
-                                    $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
-                                    preg_replace("/Each Cat Measures Approximately: (.*)/", '', $this->short_desc);
-                                }
-                            }
-                        }
-                    }
+                else if (strpos($matches[1], 'X') !== false ) {
+                    $this->dims = FeedHelper::getDimsInString($matches[1], 'X');
+                }
+                else
+                {
+                    $this->dims = FeedHelper::getDimsInString($matches[1], ',');
                 }
             }
         }
@@ -107,6 +100,11 @@ class Parser extends HtmlParser
         return $this->imgs;
     }
 
+    public function getAttributes(): ?array
+    {
+        return $this->attributes;
+    }
+
     public function getShortDescription(): array
     {
         return $this->short_desc;
@@ -114,7 +112,7 @@ class Parser extends HtmlParser
 
     public function getDescription(): string
     {
-        return $this->getText('.item .alternative .item');
+        return $this->fullDesc;
     }
 
     public function getCategories(): array
