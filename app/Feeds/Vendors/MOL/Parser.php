@@ -54,6 +54,11 @@ class Parser extends HtmlParser
                 $this->short_desc = $this->getContent('.item li');
             }
         }
+        foreach ($this->short_desc as $key => $value) {
+            if (!str_contains($this->short_desc[$key],":")) {
+                unset($this->short_desc[$key]);
+            }
+        }
 
         // get attr
         $tempFullDescText = preg_split('/<[^>]*>/', $tempFullDesc);
