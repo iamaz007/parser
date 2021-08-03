@@ -58,19 +58,19 @@ class Parser extends HtmlParser
         // get attr
         $tempFullDescText = preg_split('/<[^>]*>/', $tempFullDesc);
         $trimmed_array = array_map('trim', $tempFullDescText);
-        for ($i=0; $i < count($trimmed_array); $i++) { 
-            if (strpos($trimmed_array[$i],':') !== false) {
-                $tempArr = explode(":",$trimmed_array[$i]);
+        foreach ($trimmed_array as $key => $value) {
+            if (strpos($trimmed_array[$key],':') !== false) {
+                $tempArr = explode(":",$trimmed_array[$key]);
                 $this->attributes[StringHelper::mb_trim($tempArr[0])] = StringHelper::mb_trim($tempArr[1]);
             }
         }
 
         // get dimensions
-        for ($i=0; $i < count($this->dimensRegex); $i++) { 
-            preg_match($this->dimensRegex[$i], $this->node->html(), $matches);
+        foreach ($this->dimensRegex as $key => $value) {
+            preg_match($this->dimensRegex[$key], $this->node->html(), $matches);
             if (count($matches) > 0) {
-                $this->short_desc = preg_replace($this->dimensRegex[$i], '', $this->short_desc);
-                $this->fullDesc = preg_replace($this->dimensRegex[$i], '', $this->fullDesc);
+                $this->short_desc = preg_replace($this->dimensRegex[$key], '', $this->short_desc);
+                $this->fullDesc = preg_replace($this->dimensRegex[$key], '', $this->fullDesc);
                 if (strpos($matches[1], 'x') !== false ) {
                     $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
                 }
