@@ -9,6 +9,8 @@ use App\Helpers\StringHelper;
 class Parser extends HtmlParser
 {
     private string $selector = "center table table tr .data";
+    private string $title = "";
+    private float $cost_to_us = 0;
     private array $short_desc = [];
     private array $imgs = [];
     private array $dims = [];
@@ -22,6 +24,7 @@ class Parser extends HtmlParser
         '/Size: (.*\))/',
         '/Size Approx: (.*")/',
         '/Dimensions Appox: (.*)/',
+        '/Dimensions Approx: (.*)/',
         '/Each Cat Measures Approximately: (.*)/'
     ];
     private string $fullDesc = '';
@@ -29,13 +32,26 @@ class Parser extends HtmlParser
 
     public function beforeParse(): void
     {
+        // get title
+        $this->title = $this->getText($this->selector . ' .page_headers');
+        preg_match('/\W\$(.*)/',$this->title,$titleMatches);
+        if (count($titleMatches) > 0) {
+            $this->title = preg_replace('/\W\$(.*)/', '', $this->title);
+
+            // get price
+            $tempPrice = explode("$",$titleMatches[0]);
+            if (count($tempPrice)) {
+                $this->cost_to_us = floatval($tempPrice[0]);
+            }
+        }
+
         // get imgaes
         $tmpImgs = array_unique($this->getLinks('.price-info a'));
         $this->imgs = $tmpImgs;
         array_pop($this->imgs);
         array_pop($this->imgs);
         if (count($this->imgs) <= 0) {
-            $this->imgs = $this->getSrcImages('#listing_main_image_link img');
+            $this->imgs = $this->getLinks('#listing_main_image_link');
         }
 
         // get full desc
@@ -54,7 +70,7 @@ class Parser extends HtmlParser
                 $this->short_desc = $this->getContent('.item li');
             }
         }
-        foreach ($this->short_desc as $key => $value) {
+        foreach ($this->short_desc as $key => $value) { 
             if (!str_contains($this->short_desc[$key],":")) {
                 unset($this->short_desc[$key]);
             }
@@ -66,7 +82,11 @@ class Parser extends HtmlParser
         foreach ($trimmed_array as $key => $value) {
             if (strpos($trimmed_array[$key],':') !== false) {
                 $tempArr = explode(":",$trimmed_array[$key]);
-                $this->attributes[StringHelper::mb_trim($tempArr[0])] = StringHelper::mb_trim($tempArr[1]);
+                if (str_word_count($tempArr[0], 0) <= 3) {
+                    if (StringHelper::mb_trim($tempArr[1]) != '') {
+                        $this->attributes[StringHelper::mb_trim($tempArr[0])] = StringHelper::mb_trim($tempArr[1]);
+                    }
+                }
             }
         }
 
@@ -88,6 +108,12 @@ class Parser extends HtmlParser
                 }
             }
         }
+
+        // if attr exist in fullDescription or shortDesc, remove it
+        foreach ($this->attributes as $key => $value) {
+            $this->fullDesc = str_replace($key.": ".$value,'', $this->fullDesc);
+            $this->short_desc = str_replace($key.": ".$value,'', $this->short_desc);
+        }
     }
 
     public function getMpn(): string
@@ -97,7 +123,12 @@ class Parser extends HtmlParser
 
     public function getProduct(): string
     {
-        return $this->getText($this->selector . ' .page_headers');
+        return $this->title;
+    }
+
+    public function getCostToUs(): float
+    {
+        return $this->cost_to_us ?: 0;   
     }
 
     public function getImages(): array
