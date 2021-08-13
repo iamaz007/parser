@@ -14,6 +14,7 @@ class Parser extends HtmlParser
     private array $short_desc = [];
     private array $imgs = [];
     private array $dims = [];
+    private array $categories = [];
     private array $dimensRegex = [
         '/Dimensions: (.*")/',
         '/DIMENSIONS: (.*")/',
@@ -45,13 +46,22 @@ class Parser extends HtmlParser
             }
         }
 
+        // get categories
+        $tempCat = $this->getContent('center .data table .frame-ht .data table table .item a:nth-child(2)');
+        if (count($tempCat) > 0) {
+            $this->categories = [array_values($tempCat)[0]];
+        }
+
         // get imgaes
         $tmpImgs = array_unique($this->getLinks('.price-info a'));
         $this->imgs = $tmpImgs;
         array_pop($this->imgs);
         array_pop($this->imgs);
-        if (count($this->imgs) <= 0) {
-            $this->imgs = $this->getLinks('#listing_main_image_link');
+        $tempImgLink = $this->getLinks('#listing_main_image_link');
+        if (count($tempImgLink) > 0) {
+            foreach ($tempImgLink as $key => $value) {
+                array_push($this->imgs,$tempImgLink[$key]);
+            }
         }
 
         // get full desc
@@ -153,8 +163,7 @@ class Parser extends HtmlParser
 
     public function getCategories(): array
     {
-        $arr = $this->getContent('center .data table .frame-ht .data table table .item a:nth-child(2)');
-        return [array_values($arr)[0]];
+        return $this->categories;
     }
 
     public function getAvail(): ?int
