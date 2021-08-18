@@ -31,7 +31,22 @@ class Parser extends HtmlParser
         '/Size Approx: (.*")/',
         '/Dimensions Appox: (.*)/',
         '/Dimensions Approx: (.*)/',
-        '/Each Cat Measures Approximately: (.*)/'
+        '/Each Cat Measures Approximately: (.*)/',
+        '/\d+.\d+\\" . x (.*) H/'
+    ];
+    private array $dimensRegexWithOutColon = [
+        '/Dimensions (.*")/',
+        '/DIMENSIONS (.*")/',
+        '/Tray Dimensions (.*")/',
+        '/Tiles Dimensions (.*")/',
+        '/Approximate Dimensions (.*")/',
+        '/APPROXIMATE DIMENSIONS (.*")/',
+        '/Size (.*\))/',
+        '/Size Approx (.*")/',
+        '/Dimensions Appox (.*)/',
+        '/Dimensions Approx (.*)/',
+        '/Each Cat Measures Approximately (.*)/',
+        '/\d+.\d+\\" . x (.*) H/'
     ];
     private string $fullDesc = '';
     private array $attributes = [];
@@ -83,14 +98,21 @@ class Parser extends HtmlParser
         foreach ($trimmed_array as $key => $value) {
             if (strpos($trimmed_array[$key],':') !== false && !$this->checkDimRegex($trimmed_array[$key])) {
                 $tempArr = explode(":",$trimmed_array[$key]);
-                if (str_word_count($tempArr[0], 0) <= 3) {
+                if (str_word_count($tempArr[0], 0) <= 3 && str_word_count($tempArr[1], 0) <= 8) {
                     if (StringHelper::mb_trim($tempArr[1]) != '') {
                         $this->attributes[StringHelper::mb_trim($tempArr[0])] = StringHelper::mb_trim($tempArr[1]);
                     }
+
+                    // if string goes in attributes, then remove it from fullDesc
+                    $this->fullDesc = str_replace(StringHelper::mb_trim($tempArr[0]),"",$this->fullDesc);
+                    $this->fullDesc = str_replace(":","",$this->fullDesc);
+                    $this->fullDesc = str_replace(StringHelper::mb_trim($tempArr[1]),"",$this->fullDesc);
                 }
-                $this->fullDesc = str_replace(StringHelper::mb_trim($tempArr[0]),"",$this->fullDesc);
-                $this->fullDesc = str_replace(":","",$this->fullDesc);
-                $this->fullDesc = str_replace(StringHelper::mb_trim($tempArr[1]),"",$this->fullDesc);
+                else
+                {
+                    $this->fullDesc = StringHelper::mb_trim($tempArr[0]).": ".StringHelper::mb_trim($tempArr[1]).$this->fullDesc;
+                }
+                
 
                 $this->short_desc = str_replace(StringHelper::mb_trim($tempArr[0]),"",$this->short_desc);
                 $this->short_desc = str_replace(":","",$this->short_desc);
@@ -103,6 +125,7 @@ class Parser extends HtmlParser
             preg_match($this->dimensRegex[$key], $this->node->html(), $matches);
             if (count($matches) > 0) {
                 $this->short_desc = preg_replace($this->dimensRegex[$key], '', $this->short_desc);
+                $this->short_desc = preg_replace($this->dimensRegexWithOutColon[$key], '', $this->short_desc);
                 $this->fullDesc = preg_replace($this->dimensRegex[$key], '', $this->fullDesc);
                 if (strpos($matches[1], 'x') !== false ) {
                     $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
