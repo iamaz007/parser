@@ -24,6 +24,7 @@ class Parser extends HtmlParser
         '/Dimensions: (.*")/',
         '/DIMENSIONS: (.*")/',
         '/Tray Dimensions: (.*")/',
+        '/Tray dimensions: (.*")/',
         '/Tiles Dimensions: (.*")/',
         '/Approximate Dimensions: (.*")/',
         '/APPROXIMATE DIMENSIONS: (.*")/',
@@ -32,12 +33,14 @@ class Parser extends HtmlParser
         '/Dimensions Appox: (.*)/',
         '/Dimensions Approx: (.*)/',
         '/Each Cat Measures Approximately: (.*)/',
-        '/\d+.\d+\\" . x (.*) H/'
+        '/Diameter: (.*)/',
+        '/\d+.\d+"...x (.*) H/'
     ];
     private array $dimensRegexWithOutColon = [
         '/Dimensions (.*")/',
         '/DIMENSIONS (.*")/',
         '/Tray Dimensions (.*")/',
+        '/Tray dimensions (.*")/',
         '/Tiles Dimensions (.*")/',
         '/Approximate Dimensions (.*")/',
         '/APPROXIMATE DIMENSIONS (.*")/',
@@ -46,7 +49,8 @@ class Parser extends HtmlParser
         '/Dimensions Appox (.*)/',
         '/Dimensions Approx (.*)/',
         '/Each Cat Measures Approximately (.*)/',
-        '/\d+.\d+\\" . x (.*) H/'
+        '/Diameter (.*)/',
+        '/\d+.\d+"...x (.*) H/'
     ];
     private string $fullDesc = '';
     private array $attributes = [];
@@ -85,15 +89,18 @@ class Parser extends HtmlParser
         }
 
         // get full desc
-        $fullDesc = $this->getHtml('.item .alternative .item');
-        $tempFullDesc = preg_replace('/<ul.(.*)>(.*)<\/ul>/ms','', $fullDesc);
-        $this->fullDesc = $tempFullDesc;
+        $this->fullDesc = $this->getHtml('.item .alternative .item');
+        $this->fullDesc = preg_replace('/<span [^>]+>[^:]*<\/span>/','', $this->fullDesc); //removing short_desc
+        
+        // $tempFullDesc = preg_replace('/<ul.(.*)>(.*)<\/ul>/ms','', $fullDesc);
+        
         
         // get short desc
         $this->short_desc = $this->getContent('.item li');
+        
 
         // get attr
-        $tempFullDescText = preg_split('/<[^>]*>/', $fullDesc);
+        $tempFullDescText = preg_split('/<[^>]*>/', $this->fullDesc);
         $trimmed_array = array_map('trim', $tempFullDescText);
         foreach ($trimmed_array as $key => $value) {
             if (strpos($trimmed_array[$key],':') !== false && !$this->checkDimRegex($trimmed_array[$key])) {
@@ -107,10 +114,6 @@ class Parser extends HtmlParser
                     $this->fullDesc = str_replace(StringHelper::mb_trim($tempArr[0]),"",$this->fullDesc);
                     $this->fullDesc = str_replace(":","",$this->fullDesc);
                     $this->fullDesc = str_replace(StringHelper::mb_trim($tempArr[1]),"",$this->fullDesc);
-                }
-                else
-                {
-                    $this->fullDesc = StringHelper::mb_trim($tempArr[0]).": ".StringHelper::mb_trim($tempArr[1]).$this->fullDesc;
                 }
                 
 
@@ -129,6 +132,9 @@ class Parser extends HtmlParser
                 $this->fullDesc = preg_replace($this->dimensRegex[$key], '', $this->fullDesc);
                 if (strpos($matches[1], 'x') !== false ) {
                     $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
+                    if ($this->dims['x'] == null || $this->dims['y'] == null || $this->dims['z'] == null) {
+                        $this->dims = FeedHelper::getDimsInString($matches[0], 'x');
+                    }
                 }
                 else if (strpos($matches[1], 'X') !== false ) {
                     $this->dims = FeedHelper::getDimsInString($matches[1], 'X');
@@ -137,7 +143,22 @@ class Parser extends HtmlParser
                 {
                     $this->dims = FeedHelper::getDimsInString($matches[1], ',');
                 }
+                break;
             }
+        }
+
+        // removing shortDesc from fullDesc if any
+        // $this->fullDesc = preg_replace('/<li (.*)>[^:]*li>/','', $this->fullDesc);
+        
+        // foreach ($this->short_desc as $key => $value) {
+        //     $this->fullDesc = str_replace($this->short_desc[$key],'', $this->fullDesc);
+        // }
+        $this->fullDesc = preg_replace('/<li [^>]+><\/li>/','', $this->fullDesc);
+        $this->fullDesc = preg_replace('/<ul [^>]+><\/ul>/','', $this->fullDesc);
+        $this->fullDesc = preg_replace('/<br [^>]+>/','', $this->fullDesc);
+
+        if (empty($this->fullDesc)) {
+            $this->fullDesc = $this->getHtml('.item .alternative .item span');
         }
     }
 
