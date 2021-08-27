@@ -5,7 +5,6 @@ namespace App\Feeds\Vendors\MOL;
 use App\Feeds\Parser\HtmlParser;
 use App\Helpers\FeedHelper;
 use App\Helpers\StringHelper;
-use PhpOffice\PhpSpreadsheet\Calculation\Logical\Boolean;
 
 class Parser extends HtmlParser
 {
@@ -16,10 +15,7 @@ class Parser extends HtmlParser
     private array $imgs = [];
     private array $dims = [];
     private array $categories = [];
-    private array $shortDescRegex = [
-        '/(<li[^>]*>)(.*?)(<\\/li>)/',
-        '/(<span[^>]*>)(.*?)(<\\/span>)/',
-    ];
+
     private array $dimensRegex = [
         '/Dimensions: (.*")/',
         '/DIMENSIONS: (.*")/',
@@ -29,12 +25,15 @@ class Parser extends HtmlParser
         '/Approximate Dimensions: (.*")/',
         '/APPROXIMATE DIMENSIONS: (.*")/',
         '/Size: (.*\))/',
+        '/Size: (.*)/',
         '/Size Approx: (.*")/',
         '/Dimensions Appox: (.*)/',
         '/Dimensions Approx: (.*)/',
         '/Each Cat Measures Approximately: (.*)/',
-        '/Diameter: (.*)/',
-        '/\d+.\d+"...x (.*) H/'
+        '/Measures approximately: (.*)/',
+        '/Size Approxly: (.*)/',
+        '/\d+.\d+"...x (.*) H/',
+        '/L\d\d" X H\d\d"/',
     ];
     private array $dimensRegexWithOutColon = [
         '/Dimensions (.*")/',
@@ -45,12 +44,15 @@ class Parser extends HtmlParser
         '/Approximate Dimensions (.*")/',
         '/APPROXIMATE DIMENSIONS (.*")/',
         '/Size (.*\))/',
+        '/Size (.*)/',
         '/Size Approx (.*")/',
         '/Dimensions Appox (.*)/',
         '/Dimensions Approx (.*)/',
         '/Each Cat Measures Approximately (.*)/',
-        '/Diameter (.*)/',
-        '/\d+.\d+"...x (.*) H/'
+        '/Measures approximately (.*)/',
+        '/Size Approxly (.*)/',
+        '/\d+.\d+"...x (.*) H/',
+        '/L\d\d" X H\d\d"/',
     ];
     private string $fullDesc = '';
     private array $attributes = [];
@@ -59,16 +61,23 @@ class Parser extends HtmlParser
     {
         // get title
         $this->title = $this->getText($this->selector . ' .page_headers');
-        preg_match('/\W\$(.*)/',$this->title,$titleMatches);
+        preg_match('/\W\$(.*)/', $this->title, $titleMatches);
         if (count($titleMatches) > 0) {
             $this->title = preg_replace('/\W\$(.*)/', '', $this->title);
 
             // get price
-            $tempPrice = explode("$",$titleMatches[0]);
+            $tempPrice = explode("$", $titleMatches[0]);
             if (count($tempPrice)) {
                 $this->cost_to_us = floatval($tempPrice[0]);
             }
         }
+        // sizes from the name, transferred to dims
+        preg_match('/ \(L \d+.\d+" x W \d.\d"\)/', $this->title, $matches);
+        if (count($matches) > 0) {
+            $this->dims = FeedHelper::getDimsInString($matches[0], 'x');
+            $this->title = preg_replace('/ \(L \d+.\d+" x W \d.\d"\)/', '', $this->title);
+        }
+
 
         // get categories
         $tempCat = $this->getContent('center .data table .frame-ht .data table table .item a:nth-child(2)');
@@ -84,42 +93,42 @@ class Parser extends HtmlParser
         $tempImgLink = $this->getLinks('#listing_main_image_link');
         if (count($tempImgLink) > 0) {
             foreach ($tempImgLink as $key => $value) {
-                array_push($this->imgs,$tempImgLink[$key]);
+                array_push($this->imgs, $tempImgLink[$key]);
             }
         }
 
         // get full desc
         $this->fullDesc = $this->getHtml('.item .alternative .item');
-        $this->fullDesc = preg_replace('/<span [^>]+>[^:]*<\/span>/','', $this->fullDesc); //removing short_desc
-        
+        $this->fullDesc = preg_replace('/<span [^>]+>[^:]*<\/span>/', '', $this->fullDesc); //removing short_desc
+
         // $tempFullDesc = preg_replace('/<ul.(.*)>(.*)<\/ul>/ms','', $fullDesc);
-        
-        
+
+
         // get short desc
         $this->short_desc = $this->getContent('.item li');
-        
+
 
         // get attr
         $tempFullDescText = preg_split('/<[^>]*>/', $this->fullDesc);
         $trimmed_array = array_map('trim', $tempFullDescText);
         foreach ($trimmed_array as $key => $value) {
-            if (strpos($trimmed_array[$key],':') !== false && !$this->checkDimRegex($trimmed_array[$key])) {
-                $tempArr = explode(":",$trimmed_array[$key]);
+            if (strpos($trimmed_array[$key], ':') !== false && !$this->checkDimRegex($trimmed_array[$key])) {
+                $tempArr = explode(":", $trimmed_array[$key]);
                 if (str_word_count($tempArr[0], 0) <= 3 && str_word_count($tempArr[1], 0) <= 8) {
                     if (StringHelper::mb_trim($tempArr[1]) != '') {
                         $this->attributes[StringHelper::mb_trim($tempArr[0])] = StringHelper::mb_trim($tempArr[1]);
                     }
 
                     // if string goes in attributes, then remove it from fullDesc
-                    $this->fullDesc = str_replace(StringHelper::mb_trim($tempArr[0]),"",$this->fullDesc);
-                    $this->fullDesc = str_replace(":","",$this->fullDesc);
-                    $this->fullDesc = str_replace(StringHelper::mb_trim($tempArr[1]),"",$this->fullDesc);
+                    $this->fullDesc = str_replace(StringHelper::mb_trim($tempArr[0]), "", $this->fullDesc);
+                    $this->fullDesc = str_replace(":", "", $this->fullDesc);
+                    $this->fullDesc = str_replace(StringHelper::mb_trim($tempArr[1]), "", $this->fullDesc);
                 }
-                
 
-                $this->short_desc = str_replace(StringHelper::mb_trim($tempArr[0]),"",$this->short_desc);
-                $this->short_desc = str_replace(":","",$this->short_desc);
-                $this->short_desc = str_replace(StringHelper::mb_trim($tempArr[1]),"",$this->short_desc);
+
+                $this->short_desc = str_replace(StringHelper::mb_trim($tempArr[0]), "", $this->short_desc);
+                $this->short_desc = str_replace(":", "", $this->short_desc);
+                $this->short_desc = str_replace(StringHelper::mb_trim($tempArr[1]), "", $this->short_desc);
             }
         }
 
@@ -130,18 +139,22 @@ class Parser extends HtmlParser
                 $this->short_desc = preg_replace($this->dimensRegex[$key], '', $this->short_desc);
                 $this->short_desc = preg_replace($this->dimensRegexWithOutColon[$key], '', $this->short_desc);
                 $this->fullDesc = preg_replace($this->dimensRegex[$key], '', $this->fullDesc);
-                if (strpos($matches[1], 'x') !== false ) {
-                    $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
-                    if ($this->dims['x'] == null || $this->dims['y'] == null || $this->dims['z'] == null) {
-                        $this->dims = FeedHelper::getDimsInString($matches[0], 'x');
+
+                if (strpos($matches[0], 'x') !== false) {
+                    $this->dims = FeedHelper::getDimsInString($matches[0], 'x');
+                    if ($this->dims['x'] == null) {
+                        $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
                     }
-                }
-                else if (strpos($matches[1], 'X') !== false ) {
-                    $this->dims = FeedHelper::getDimsInString($matches[1], 'X');
-                }
-                else
-                {
-                    $this->dims = FeedHelper::getDimsInString($matches[1], ',');
+                } else if (strpos($matches[0], 'X') !== false) {
+                    $this->dims = FeedHelper::getDimsInString($matches[0], 'X');
+                    if ($this->dims['x'] == null) {
+                        $this->dims = FeedHelper::getDimsInString($matches[1], 'X');
+                    }
+                } else {
+                    $this->dims = FeedHelper::getDimsInString($matches[0], ',');
+                    if ($this->dims['x'] == null) {
+                        $this->dims = FeedHelper::getDimsInString($matches[1], ',');
+                    }
                 }
                 break;
             }
@@ -149,22 +162,35 @@ class Parser extends HtmlParser
 
         // removing shortDesc from fullDesc if any
         // $this->fullDesc = preg_replace('/<li (.*)>[^:]*li>/','', $this->fullDesc);
-        
+
         // foreach ($this->short_desc as $key => $value) {
         //     $this->fullDesc = str_replace($this->short_desc[$key],'', $this->fullDesc);
         // }
-        $this->fullDesc = preg_replace('/<li [^>]+><\/li>/','', $this->fullDesc);
-        $this->fullDesc = preg_replace('/<ul [^>]+><\/ul>/','', $this->fullDesc);
-        $this->fullDesc = preg_replace('/<br [^>]+>/','', $this->fullDesc);
+        $this->fullDesc = preg_replace('/<li [^>]+><\/li>/', '', $this->fullDesc);
+        $this->fullDesc = preg_replace('/<ul [^>]+><\/ul>/', '', $this->fullDesc);
+        $this->fullDesc = preg_replace('/<br [^>]+>/', '', $this->fullDesc);
 
-        if (empty($this->fullDesc)) {
-            $this->fullDesc = $this->getHtml('.item .alternative .item span');
+        // words are headings, they need to be wrapped in a <p> tag
+        preg_match_all('/<span[^>]*>(.*?)<\/span>/', $this->fullDesc, $tempData);
+        if (array_key_exists(1, $tempData)) {
+            foreach ($tempData as $key => $value) {
+                foreach ($tempData[$key] as $key2 => $value2) {
+                    if (str_contains($tempData[$key][$key2], ":")) {
+                        $tempArray = explode(":", $tempData[$key][$key2]);
+                        $this->fullDesc = str_replace($tempArray[0], "<p>" . $tempArray[0] . "</p>", $this->fullDesc);
+                    }
+                }
+            }
         }
+        $this->fullDesc = $this->getHtml('.item .alternative .item span:first-child') . $this->fullDesc;
+        // if ($this->fullDesc == "" || $this->fullDesc == null) {
+
+        // }
     }
 
     public function checkDimRegex($str)
     {
-        $regexExist = false; 
+        $regexExist = false;
         foreach ($this->dimensRegex as $key => $value) {
             preg_match($this->dimensRegex[$key], $str, $output_array);
             if (count($output_array) > 0) {
@@ -188,7 +214,7 @@ class Parser extends HtmlParser
 
     public function getCostToUs(): float
     {
-        return $this->cost_to_us ?: 0;   
+        return $this->cost_to_us ?: 0;
     }
 
     public function getImages(): array
