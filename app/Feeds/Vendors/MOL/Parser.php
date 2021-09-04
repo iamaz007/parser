@@ -17,6 +17,7 @@ class Parser extends HtmlParser
     private array $categories = [];
 
     private array $dimensRegex = [
+        '/Tray Size: (.*")/',
         '/Dimensions: (.*")/',
         '/DIMENSIONS: (.*")/',
         '/Tray Dimensions: (.*")/',
@@ -26,6 +27,7 @@ class Parser extends HtmlParser
         '/APPROXIMATE DIMENSIONS: (.*")/',
         '/Size: (.*\))/',
         '/Size: (.*)/',
+        '/Size:(.*)/',
         '/Size Approx: (.*")/',
         '/Dimensions Appox: (.*)/',
         '/Dimensions Approx: (.*)/',
@@ -36,6 +38,7 @@ class Parser extends HtmlParser
         '/L\d\d" X H\d\d"/',
     ];
     private array $dimensRegexWithOutColon = [
+        '/Tray Size (.*")/',
         '/Dimensions (.*")/',
         '/DIMENSIONS (.*")/',
         '/Tray Dimensions (.*")/',
@@ -45,6 +48,7 @@ class Parser extends HtmlParser
         '/APPROXIMATE DIMENSIONS (.*")/',
         '/Size (.*\))/',
         '/Size (.*)/',
+        '/Size(.*)/',
         '/Size Approx (.*")/',
         '/Dimensions Appox (.*)/',
         '/Dimensions Approx (.*)/',
@@ -163,9 +167,7 @@ class Parser extends HtmlParser
         // removing shortDesc from fullDesc if any
         // $this->fullDesc = preg_replace('/<li (.*)>[^:]*li>/','', $this->fullDesc);
 
-        // foreach ($this->short_desc as $key => $value) {
-        //     $this->fullDesc = str_replace($this->short_desc[$key],'', $this->fullDesc);
-        // }
+        
         $this->fullDesc = preg_replace('/<li [^>]+><\/li>/', '', $this->fullDesc);
         $this->fullDesc = preg_replace('/<ul [^>]+><\/ul>/', '', $this->fullDesc);
         $this->fullDesc = preg_replace('/<br [^>]+>/', '', $this->fullDesc);
@@ -182,7 +184,21 @@ class Parser extends HtmlParser
                 }
             }
         }
-        $this->fullDesc = $this->getHtml('.item .alternative .item span:first-child') . $this->fullDesc;
+
+        foreach ($this->short_desc as $key => $value) {
+            preg_match('/SIZE: #\d/', $this->short_desc[$key], $output_array);
+            if (count($output_array) > 0) {
+                array_push($this->attributes,$output_array[0]);
+            }
+        }
+        
+        $this->short_desc = preg_replace('/SIZE: #\d/','',$this->short_desc);
+        $this->fullDesc = $this->removeHtmlAttributesFromDesc($this->fullDesc);
+        // $remainText = $this->getText('.item .alternative .item span:first-child');
+        // if (!strstr($this->fullDesc, $remainText)) {
+        //     $this->fullDesc = $this->getHtml('.item .alternative .item span:first-child') . $this->fullDesc;
+        // }
+        
         // if ($this->fullDesc == "" || $this->fullDesc == null) {
 
         // }
@@ -200,6 +216,18 @@ class Parser extends HtmlParser
         }
 
         return $regexExist;
+    }
+
+    public function removeHtmlAttributesFromDesc($desc)
+    {
+        $desc = str_replace("Approximate ,",'',$desc);
+        $desc = str_replace("Approximate  (overall)",'',$desc);
+        $desc = str_replace("Arial",'',$desc);
+        $desc = str_replace("sans-serif;",'',$desc);
+        $desc = preg_replace('/font-size: (.*?);/','',$desc);
+        $desc = preg_replace('/background-color: (.*?);/','',$desc);
+
+        return $desc;
     }
 
     public function getMpn(): string
