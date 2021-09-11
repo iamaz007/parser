@@ -76,55 +76,66 @@ class TestController extends Controller
 
     public function test4Mol()
     {
-        $str = '<td class="item"> <span
-                style="color: rgb(51, 51, 51); font-family: &quot;Amazon Ember&quot;, Arial, sans-serif; font-size: small; background-color: rgb(255, 255, 255);">This
-                fashionable and stylish Elastic Knee Compression Sleeve Support with a 4 way stretch capability, offering all
-                around superior protection is a must have for runners, weightlifters, or professional athletes.</span><br
-                style="box-sizing: border-box; color: rgb(51, 51, 51); font-family: &quot;Amazon Ember&quot;, Arial, sans-serif; font-size: small; background-color: rgb(255, 255, 255);"><span
-                style="color: rgb(51, 51, 51); font-family: &quot;Amazon Ember&quot;, Arial, sans-serif; font-size: small; background-color: rgb(255, 255, 255);">Sports
-                usage: running, basketball, soccer, football, golf, cycling, tennis, hiking, volleyball, skiing and much
-                more</span><br
-                style="box-sizing: border-box; color: rgb(51, 51, 51); font-family: &quot;Amazon Ember&quot;, Arial, sans-serif; font-size: small; background-color: rgb(255, 255, 255);"><span
-                style="color: rgb(51, 51, 51); font-family: &quot;Amazon Ember&quot;, Arial, sans-serif; font-size: small; background-color: rgb(255, 255, 255);">The
-                breathable knitted fabric is strong, can gently close to the skin, regulate humidity.</span>
-            <div><span
-                    style="color: rgb(51, 51, 51); font-family: &quot;Amazon Ember&quot;, Arial, sans-serif; font-size: small; background-color: rgb(255, 255, 255);"><br></span>
-            </div>
-            <div>
-                <ul class="a-unordered-list a-vertical a-spacing-none"
-                    style="box-sizing: border-box; margin: 0px 0px 0px 18px; color: rgb(17, 17, 17); padding: 0px; font-family: &quot;Amazon Ember&quot;, Arial, sans-serif; font-size: 13px; background-color: rgb(255, 255, 255);">
-                    <li style="box-sizing: border-box; list-style: disc; overflow-wrap: break-word; margin: 0px;"><span
-                            class="a-list-item" style="box-sizing: border-box;">Reduces inflammation/swelling, soreness,
-                            stiffness, has heating effect for muscular recovery. Suitable for all sports activities that involve
-                            a great amount of stress on the joints like: running, basketball, soccer, football, golf, cycling,
-                            tennis, hiking, volleyball, skiing and much more</span></li>
-                    <li style="box-sizing: border-box; list-style: disc; overflow-wrap: break-word; margin: 0px;"><span
-                            class="a-list-item" style="box-sizing: border-box;">Provide strong absorbent ability, high elastic
-                            soft fabric let you wearing comfortable</span></li>
-                    <li style="box-sizing: border-box; list-style: disc; overflow-wrap: break-word; margin: 0px;"><span
-                            class="a-list-item" style="box-sizing: border-box;">Aid in recovery, runners &amp; jumpers knee,
-                            arthritis, tendonitis</span></li>
-                    <li style="box-sizing: border-box; list-style: disc; overflow-wrap: break-word; margin: 0px;"><span
-                            class="a-list-item" style="box-sizing: border-box;">Machine Washable: The lightweight compression
-                            sleeves are machine washable, 100% awesome and easy to care for, One Size fits all, Good for men and
-                            women</span></li>
-                    <li style="box-sizing: border-box; list-style: disc; overflow-wrap: break-word; margin: 0px;"><span
-                            class="a-list-item" style="box-sizing: border-box;">Size: length - 10.6" (27cm), width - 6.7"
-                            (17cm)</span></li>
-                </ul>
-            </div>
-        </td>';
+        $str = '<tr>
+        <td class="item" colspan="2" align="center"><table width="100%" cellpadding="5" cellspacing="0" class="alternative">
+        <tbody><tr>
+        <td class="item"> Chinese Healthy Balls stimulate and exercise your hands muscles by moving both of them in one hand. The balls are metal, hollow and have chiming sounding plates inside. They make crisp and rhythmical sounds when moving.Play them to relax and reduce stress. Each ball is about 2" in diameter. </td>
+        </tr>
+        </tbody></table></td>
+        </tr><tr>
+        <td align="center" colspan="2"><table width="100%" cellpadding="0" cellspacing="0">
+        </table></td>
+        </tr><tr>
+        <td class="item" colspan="2">
+        <li>SIZE: #2Diameter: 2"</li>
+        </td>
+        </tr>';
 
         $data = preg_split('/<[^>]*>/', $str);
         $trimmed_array = array_map('trim', $data);
         $tempArr = [];
-        for ($i=0; $i < count($trimmed_array); $i++) { 
-            if (strpos($trimmed_array[$i],':') !== false) {
+        for ($i = 0; $i < count($trimmed_array); $i++) {
+            if (strpos($trimmed_array[$i], ':') !== false) {
                 // echo 'yes';
-                array_push($tempArr, trim($trimmed_array[$i]));
+                // array_push($tempArr, trim($trimmed_array[$i]));
+                if (strpos($trimmed_array[$i], "SIZE: #2Diameter: 2\"") !== false) {
+                    $res = 1;
+                    break;
+                } else {
+                    $res = 0;
+                }
             }
         }
+        echo $res;
+        // return $tempArr;
 
-        return $tempArr;
+
+    }
+
+    public function test5Mol(Request $r)
+    {
+        $web = file_get_contents('https://www.moriental.com/10-Long-Pear-Wood-Churchwarden-Tobacco-Pipe-with-Gift-Box-TP8021-2_p_2756.html');
+        $regex = '/Size Approx: (.*")/';
+        preg_match($regex, $web, $matches);
+        $raw_dims = explode('X', $matches[0]);
+
+        $dims['x'] = isset($raw_dims[0]) ? self::getFloat($raw_dims[0]) : null;
+        $dims['y'] = isset($raw_dims[1]) ? self::getFloat($raw_dims[1]) : null;
+        $dims['z'] = isset($raw_dims[2]) ? self::getFloat($raw_dims[2]) : null;
+        return $dims;
+    }
+
+    public static function getFloat(string $string, ?float $default = null): ?float
+    {
+        if (preg_match('/\d+\.\d+|\.\d+|\d+/', str_replace(',', '', $string), $match_float)) {
+            return self::normalizeFloat((float)$match_float[0], $default);
+        }
+        return null;
+    }
+
+    public static function normalizeFloat(?float $float, ?float $default = null): ?float
+    {
+        $float = round($float, 2);
+        return $float > 0.01 ? $float : $default;
     }
 }

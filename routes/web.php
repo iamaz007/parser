@@ -19,3 +19,4 @@ Route::get('test',[TestController::class,'test']);
 Route::get('test2',[TestController::class,'test2']);
 Route::get('test3Mol',[TestController::class,'test3Mol']);
 Route::get('test4Mol',[TestController::class,'test4Mol']);
+Route::get('test5Mol',[TestController::class,'test5Mol']);
