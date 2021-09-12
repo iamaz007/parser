@@ -150,15 +150,15 @@ class Parser extends HtmlParser
                 $this->short_desc = preg_replace($this->dimensRegexWithOutColon[$key], '', $this->short_desc);
                 $this->fullDesc = preg_replace($this->dimensRegex[$key], '', $this->fullDesc);
 
-                if (strpos($matches[0], 'x') !== false) {
-                    $this->dims = FeedHelper::getDimsInString($matches[0], 'x');
+                if (strpos($matches[0], ' x ') !== false) {
+                    $this->dims = FeedHelper::getDimsInString($matches[0], ' x ');
                     if (is_null($this->dims['x'])) {
-                        $this->dims = FeedHelper::getDimsInString($matches[1], 'x');
+                        $this->dims = FeedHelper::getDimsInString($matches[1], ' x ');
                     }
-                } else if (strpos($matches[0], 'X') !== false) {
-                    $this->dims = FeedHelper::getDimsInString($matches[0], 'X');
+                } else if (strpos($matches[0], ' X ') !== false) {
+                    $this->dims = FeedHelper::getDimsInString($matches[0], ' X ');
                     if (is_null($this->dims['x'])) {
-                        $this->dims = FeedHelper::getDimsInString($matches[1], 'X');
+                        $this->dims = FeedHelper::getDimsInString($matches[1], ' X ');
                     }
                 } else {
                     $this->dims = FeedHelper::getDimsInString($matches[0], ',');
